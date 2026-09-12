@@ -70,6 +70,9 @@
   .step-row input { margin-top: 0; flex: 1; }
   .step-row button { flex: 0 0 auto; padding: 8px 12px; border-color: #fee2e2; color: #b91c1c; background: #fff; cursor: pointer; border-radius: 9px; font: inherit; font-size: 13px; }
   .step-row button:hover { background: #fee2e2; }
+  .step-row button.indent-btn { padding: 8px 10px; color: #6b7280; border-color: var(--line); }
+  .step-row button.indent-btn:hover { background: #f0f1f4; }
+  .step-row button.indent-btn.active { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
   
   /* Algorithm & Tips display in the card */
   .exercise-steps { margin: 0; padding-left: 20px; font-size: 13px; color: #4b5563; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; }
@@ -79,7 +82,9 @@
   .exercise-algo { margin-top: 0; padding: 0; background: #f9fafb; border-radius: 8px; font-size: 12px; color: #4b5563; white-space: pre-wrap; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; }
   .exercise.open .exercise-desc { max-height: 200px; opacity: 1; margin-top: 7px; margin-bottom: 7px; }
   .exercise.open .exercise-algo { max-height: 300px; opacity: 1; padding: 10px 12px; margin-top: 9px; }
-  .exercise.open .exercise-steps { max-height: 500px; opacity: 1; margin-top: 9px; }
+  .exercise.open .exercise-steps { max-height: 1200px; opacity: 1; margin-top: 9px; }
+  .exercise-steps ol { list-style-type: lower-alpha; padding-left: 18px; margin-top: 2px; }
+  .exercise-steps ol li { margin-bottom: 2px; color: #6b7280; }
   .exercise.open .tips-box { max-height: 200px; opacity: 1; padding: 9px 12px; margin-top: 10px; }
   .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .tag { font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 20px; }
@@ -328,9 +333,7 @@ function renderList() {
           </div>` : ""}
       </div>
       ${e.description ? `<div class="exercise-desc">${esc(e.description)}</div>` : ""}
-            ${(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : [])).length 
-        ? `<ol class="exercise-steps">${(Array.isArray(e.algorithm) ? e.algorithm : e.algorithm.split("\n")).map(step => `<li>${esc(step)}</li>`).join("")}</ol>` 
-        : ""}
+                  ${renderSteps(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []))}
       ${e.tips ? `<div class="tips-box"><strong>💡 Tips:</strong> ${esc(e.tips)}</div>` : ""}
     </div>
   `).join("");
@@ -351,6 +354,34 @@ function renderList() {
 }
 
 /* ---------- form: add / edit ---------- */
+ function renderSteps(steps) {
+  if (!steps || !steps.length) return "";
+  let html = '<ol class="exercise-steps">';
+  let i = 0;
+  while (i < steps.length) {
+    const step = steps[i];
+    if (step.startsWith("- ")) {
+      // Orphan sub-step — treat as regular
+      html += `<li>${esc(step.replace(/^-\s*/, ""))}</li>`;
+      i++;
+      continue;
+    }
+    html += `<li>${esc(step)}`;
+    let j = i + 1;
+    const subs = [];
+    while (j < steps.length && steps[j].startsWith("- ")) {
+      subs.push(steps[j].replace(/^-\s*/, ""));
+      j++;
+    }
+    if (subs.length) {
+      html += "<ol>" + subs.map(s => `<li>${esc(s)}</li>`).join("") + "</ol>";
+    }
+    html += "</li>";
+    i = j;
+  }
+  html += "</ol>";
+  return html;
+}
 document.getElementById("exerciseForm").addEventListener("submit", async e => {
   e.preventDefault();
   if (!currentUser) { toast("Sign in first."); return; }
@@ -361,8 +392,13 @@ document.getElementById("exerciseForm").addEventListener("submit", async e => {
   const altNames = document.getElementById("f-alt").value.trim();
   const secondary = document.getElementById("f-secondary").value
     .split(",").map(x => x.trim()).filter(Boolean);
-    const algorithm = Array.from(document.querySelectorAll("#steps-container input"))
-    .map(input => input.value.trim())
+      const algorithm = Array.from(document.querySelectorAll("#steps-container .step-row"))
+    .map(row => {
+      const text = row.querySelector("input").value.trim();
+      if (!text) return null;
+      const isSub = row.querySelector(".indent-btn").classList.contains("active");
+      return isSub ? "- " + text : text;
+    })
     .filter(Boolean);
   const tips = document.getElementById("f-tips").value.trim();
 
@@ -421,9 +457,20 @@ function startEdit(id) {
   const container = document.getElementById("steps-container");
   const row = document.createElement("div");
   row.className = "step-row";
-  row.innerHTML = `<input type="text" placeholder="Enter a step" value="${esc(value)}">
-                   <button type="button" class="remove-step" title="Remove step">✕</button>`;
-  row.querySelector(".remove-step").addEventListener("click", () => row.remove());
+  const isSub = String(value).trim().startsWith("- ");
+  const displayValue = isSub ? String(value).replace(/^\s*-\s*/, "") : value;
+  row.innerHTML = `
+    <button type="button" class="indent-btn ${isSub ? "active" : ""}" title="Toggle sub-step">↳</button>
+    <input type="text" placeholder="Enter a step" value="${esc(displayValue)}">
+    <button type="button" class="remove-step" title="Remove step">✕</button>`;
+  row.querySelector(".indent-btn").addEventListener("click", (e) => {
+    e.preventDefault();
+    e.currentTarget.classList.toggle("active");
+  });
+  row.querySelector(".remove-step").addEventListener("click", (e) => {
+    e.preventDefault();
+    row.remove();
+  });
   container.appendChild(row);
 }
 
