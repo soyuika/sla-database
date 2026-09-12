@@ -156,6 +156,7 @@
   .level-badge.intermediate { background: #2a2415; border-color: #5a5028; color: #e0c878; }
   .level-badge.advanced     { background: #2a1616; border-color: #5a2d2d; color: #e88a8a; }
   .level-badge.mixed        { background: #1f1a2e; border-color: #3d2d5a; color: #b08ee0; }
+   .level-badge.any          { background: #1a1d23; border-color: #3a4252; color: #b0b8c6; }
    /* Linked exercises — form chips */
   .link-chip {
     display: inline-flex; align-items: center; gap: 6px;
@@ -296,7 +297,8 @@
       <input id="f-secondary" placeholder="Listening, Speaking">
            <label>Recommended levels (CEFR)</label>
       <div class="level-checkboxes">
-        <label class="level-check"><input type="checkbox" class="f-level" value="A0"><span>A0</span></label>
+                <label class="level-check"><input type="checkbox" class="f-level" value="ANY"><span>Any level</span></label>
+       <label class="level-check"><input type="checkbox" class="f-level" value="A0"><span>A0</span></label>
         <label class="level-check"><input type="checkbox" class="f-level" value="A1"><span>A1</span></label>
         <label class="level-check"><input type="checkbox" class="f-level" value="A2"><span>A2</span></label>
         <label class="level-check"><input type="checkbox" class="f-level" value="B1"><span>B1</span></label>
@@ -444,6 +446,7 @@ function renderSectionNav() {
 const LEVEL_ORDER = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
 function classifyLevels(levels) {
   if (!levels || !levels.length) return { text: "", cls: "" };
+   if (levels.includes("ANY")) return { text: "Any level", cls: "any" };
   const bands = {
     beginner:     ["A0", "A1", "A2"],
     intermediate: ["B1", "B2"],
@@ -462,7 +465,26 @@ function renderLevelBadge(levels) {
   if (!text) return "";
   return `<div class="level-row"><span class="level-badge ${cls}">${esc(text)}</span></div>`;
 }
-/* ---------- linked exercises ---------- */
+/* ---------- level checkboxes: mutual exclusivity for "Any" ---------- */
+(function initLevelExclusivity() {
+  const boxes = document.querySelectorAll(".f-level");
+  if (!boxes.length) return;
+  boxes.forEach(cb => {
+    cb.addEventListener("change", () => {
+      if (cb.value === "ANY" && cb.checked) {
+        // Any selected → deselect all specific levels
+        document.querySelectorAll(".f-level").forEach(other => {
+          if (other !== cb) other.checked = false;
+        });
+      } else if (cb.value !== "ANY" && cb.checked) {
+        // Specific level selected → deselect Any
+        const anyBox = document.querySelector('.f-level[value="ANY"]');
+        if (anyBox) anyBox.checked = false;
+      }
+    });
+  });
+})();
+ /* ---------- linked exercises ---------- */
 let linkedIds = [];
 
 function renderLinkedChips() {
