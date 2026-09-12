@@ -51,6 +51,14 @@
   .section-nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 
   .exercise { border: 1px solid var(--line); border-radius: 11px; padding: 15px 17px; margin-bottom: 10px; background: #fff; }
+  .bg-Vocabulary { background-color: #f0f4ff; }
+  .bg-Grammar { background-color: #f7f0ff; }
+  .bg-Listening { background-color: #f0fdf9; }
+  .bg-Speaking { background-color: #fff5f0; }
+  .bg-Reading { background-color: #f0fdf4; }
+  .bg-Writing { background-color: #fff0f5; }
+  .bg-Accent { background-color: #fffbf0; }
+  .bg-Culture { background-color: #f4f6f8; }
   .exercise-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
   .exercise-name { font-weight: 650; font-size: 15px; }
   .exercise-desc { margin-top: 7px; color: #374151; font-size: 14px; }
@@ -279,7 +287,7 @@ function renderList() {
   }
 
   box.innerHTML = list.map(e => `
-    <div class="exercise">
+    <div class="exercise bg-${e.primary}">
       <div class="exercise-top">
         <div>
           <div class="exercise-name">${esc(e.name)}</div>
