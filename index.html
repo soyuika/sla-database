@@ -479,6 +479,41 @@ function renderSectionNav() {
 
 /* ---------- levels ---------- */
 const LEVEL_ORDER = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
+ function sortByLevels(list) {
+  return list.slice().sort((a, b) => {
+    const aLevels = a.levels || [];
+    const bLevels = b.levels || [];
+
+    // Exercises without levels go last
+    const aHas = aLevels.length > 0;
+    const bHas = bLevels.length > 0;
+    if (!aHas && !bHas) return 0;
+    if (!aHas) return 1;
+    if (!bHas) return -1;
+
+    // "Any level" always floats to the top
+    const aAny = aLevels.includes("ANY");
+    const bAny = bLevels.includes("ANY");
+    if (aAny && !bAny) return -1;
+    if (bAny && !aAny) return 1;
+    if (aAny && bAny) return 0;
+
+    // Convert each list to numeric indices and find min/max
+    const aIdx = aLevels.map(l => LEVEL_ORDER.indexOf(l)).filter(i => i >= 0);
+    const bIdx = bLevels.map(l => LEVEL_ORDER.indexOf(l)).filter(i => i >= 0);
+    if (!aIdx.length && !bIdx.length) return 0;
+    if (!aIdx.length) return 1;
+    if (!bIdx.length) return -1;
+
+    const aMin = Math.min(...aIdx);
+    const bMin = Math.min(...bIdx);
+    if (aMin !== bMin) return aMin - bMin;   // lower start first
+
+    const aMax = Math.max(...aIdx);
+    const bMax = Math.max(...bIdx);
+    return aMax - bMax;                       // shorter range first if tied
+  });
+}
 function classifyLevels(levels) {
   if (!levels || !levels.length) return { text: "", cls: "" };
   if (levels.includes("ANY")) return { text: "Any level", cls: "any" };
@@ -651,7 +686,7 @@ function renderList() {
     const nonEmpty = SECTIONS.filter(s => bySection[s].length > 0);
 
     box.innerHTML = nonEmpty.map(sec => {
-      const items = bySection[sec];
+            const items = sortByLevels(bySection[sec]);
       const preview = items.slice(0, 3)
         .map(e => `<span class="folder-preview-item">${esc(e.name)}</span>`)
         .join("");
@@ -680,7 +715,7 @@ function renderList() {
   }
 
   /* ---------- Regular exercise view (section selected) ---------- */
-    const list = allExercises.filter(e => e.primary === currentSection);
+    const list = sortByLevels(allExercises.filter(e => e.primary === currentSection));
 
   title.textContent = `Exercises — ${currentSection}`;
 
