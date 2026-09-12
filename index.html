@@ -134,6 +134,8 @@
           </select>
         </div>
       </div>
+      <label>Alternative names (comma-separated)</label>
+      <input id="f-alt" placeholder="Shadowing, Parroting, Echoing">
       <label>Description</label>
       <textarea id="f-desc" rows="2" placeholder="What is this exercise and what does it train?"></textarea>
       <label>Secondary tags (comma-separated)</label>
@@ -291,6 +293,7 @@ function renderList() {
       <div class="exercise-top">
         <div>
           <div class="exercise-name">${esc(e.name)}</div>
+                    ${e.altNames ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">Also known as: ${esc(e.altNames)}</div>` : ""}
           <div class="tags">
             <span class="tag primary">${esc(e.primary)}</span>
             ${(e.secondary || []).map(t => `<span class="tag secondary">${esc(t)}</span>`).join("")}
@@ -322,13 +325,14 @@ document.getElementById("exerciseForm").addEventListener("submit", async e => {
   const name = document.getElementById("f-name").value.trim();
   const primary = document.getElementById("f-primary").value;
   const description = document.getElementById("f-desc").value.trim();
+  const altNames = document.getElementById("f-alt").value.trim();
   const secondary = document.getElementById("f-secondary").value
     .split(",").map(x => x.trim()).filter(Boolean);
   const algorithm = document.getElementById("f-algo").value.trim();
 
   if (!name || !primary) { toast("Name and primary section are required."); return; }
 
-  const payload = { name, primary, description, secondary, algorithm };
+  const payload = { name, primary, description, secondary, algorithm, altNames };
 
   try {
     if (editingId) {
@@ -360,6 +364,7 @@ function startEdit(id) {
   if (!e) return;
   editingId = id;
   document.getElementById("f-name").value = e.name || "";
+  document.getElementById("f-alt").value = e.altNames || "";
   document.getElementById("f-primary").value = e.primary || "";
   document.getElementById("f-desc").value = e.description || "";
   document.getElementById("f-secondary").value = (e.secondary || []).join(", ");
