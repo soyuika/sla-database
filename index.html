@@ -52,8 +52,8 @@
 
   #exerciseList { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
   @media (max-width: 640px) { #exerciseList { grid-template-columns: 1fr; } }
-  .exercise { border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; background: #fff; transition: box-shadow 0.2s ease, transform 0.2s ease; cursor: default; }
-  .exercise:hover { box-shadow: 0 8px 16px rgba(0,0,0,0.1); transform: translateY(-2px); z-index: 10; position: relative; }
+  .exercise { border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; background: #fff; transition: box-shadow 0.2s ease, transform 0.2s ease; cursor: pointer; }
+  .exercise.open { box-shadow: 0 8px 16px rgba(0,0,0,0.1); transform: translateY(-2px); z-index: 10; position: relative; }
   .bg-Vocabulary { background-color: #f0f4ff; }
   .bg-Grammar { background-color: #f7f0ff; }
   .bg-Listening { background-color: #f0fdf9; }
@@ -66,8 +66,8 @@
   .exercise-name { font-weight: 650; font-size: 15px; }
   .exercise-desc { margin-top: 0; color: #374151; font-size: 13px; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; }
   .exercise-algo { margin-top: 0; padding: 0; background: #f9fafb; border-radius: 8px; font-size: 12px; color: #4b5563; white-space: pre-wrap; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; }
-  .exercise:hover .exercise-desc { max-height: 200px; opacity: 1; margin-top: 7px; margin-bottom: 7px; }
-  .exercise:hover .exercise-algo { max-height: 300px; opacity: 1; padding: 10px 12px; margin-top: 9px; }
+  .exercise.open .exercise-desc { max-height: 200px; opacity: 1; margin-top: 7px; margin-bottom: 7px; }
+  .exercise.open .exercise-algo { max-height: 300px; opacity: 1; padding: 10px 12px; margin-top: 9px; }
   .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .tag { font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 20px; }
   .tag.primary { background: var(--accent-soft); color: #1e4fd8; }
@@ -320,6 +320,14 @@ function renderList() {
     b.addEventListener("click", () => startEdit(b.dataset.edit)));
   box.querySelectorAll("[data-del]").forEach(b =>
     b.addEventListener("click", () => deleteExercise(b.dataset.del)));
+   // Make the card expand/collapse when clicked
+  box.querySelectorAll(".exercise").forEach(card => {
+    card.addEventListener("click", (e) => {
+      // If the user clicked the Edit or Delete buttons, don't toggle the card
+      if (e.target.closest('button')) return;
+      card.classList.toggle("open");
+    });
+  });
 }
 
 /* ---------- form: add / edit ---------- */
