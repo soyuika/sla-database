@@ -482,18 +482,45 @@ function renderSectionNav() {
 const LEVEL_ORDER = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
 function classifyLevels(levels) {
   if (!levels || !levels.length) return { text: "", cls: "" };
-   if (levels.includes("ANY")) return { text: "Any level", cls: "any" };
+  if (levels.includes("ANY")) return { text: "Any level", cls: "any" };
+
+  const sorted = levels.slice().sort((a, b) => LEVEL_ORDER.indexOf(a) - LEVEL_ORDER.indexOf(b));
+
   const bands = {
     beginner:     ["A0", "A1", "A2"],
     intermediate: ["B1", "B2"],
     advanced:     ["C1", "C2"]
   };
-  const sorted = levels.slice().sort((a, b) => LEVEL_ORDER.indexOf(a) - LEVEL_ORDER.indexOf(b));
+
+  // Exact match for a full band → friendly name
   for (const [name, band] of Object.entries(bands)) {
-    if (sorted.every(l => band.includes(l))) {
+    if (sorted.length === band.length && sorted.every(l => band.includes(l))) {
       return { text: name.charAt(0).toUpperCase() + name.slice(1), cls: name };
     }
   }
+
+  // Single level
+  if (sorted.length === 1) {
+    const lv = sorted[0];
+    const bandEntry = Object.entries(bands).find(([, arr]) => arr.includes(lv));
+    return { text: lv, cls: bandEntry ? bandEntry[0] : "mixed" };
+  }
+
+  // Check if the levels form a contiguous range
+  const idxs = sorted.map(l => LEVEL_ORDER.indexOf(l));
+  let contiguous = true;
+  for (let i = 1; i < idxs.length; i++) {
+    if (idxs[i] !== idxs[i - 1] + 1) { contiguous = false; break; }
+  }
+
+  if (contiguous) {
+    const first = sorted[0];
+    const last  = sorted[sorted.length - 1];
+    if (last === "C2") return { text: first + "+", cls: "mixed" };
+    return { text: first + "-" + last, cls: "mixed" };
+  }
+
+  // Non-contiguous → show the actual list
   return { text: sorted.join(", "), cls: "mixed" };
 }
 function renderLevelBadge(levels) {
