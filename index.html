@@ -488,40 +488,41 @@ const LEVEL_ORDER = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
     // Exercises without levels go last
     const aHas = aLevels.length > 0;
     const bHas = bLevels.length > 0;
-    if (!aHas && !bHas) return 0;
+    if (!aHas && !bHas) return compareOrder(a, b);
     if (!aHas) return 1;
     if (!bHas) return -1;
 
-    // "Any level" always floats to the top
+    // "Any level" always floats to the top, but its own order matters too
     const aAny = aLevels.includes("ANY");
     const bAny = bLevels.includes("ANY");
     if (aAny && !bAny) return -1;
     if (bAny && !aAny) return 1;
-    if (aAny && bAny) return 0;
+    if (aAny && bAny) return compareOrder(a, b);
 
-    // Convert each list to numeric indices and find min/max
+    // Convert to numeric indices
     const aIdx = aLevels.map(l => LEVEL_ORDER.indexOf(l)).filter(i => i >= 0);
     const bIdx = bLevels.map(l => LEVEL_ORDER.indexOf(l)).filter(i => i >= 0);
-    if (!aIdx.length && !bIdx.length) return 0;
+    if (!aIdx.length && !bIdx.length) return compareOrder(a, b);
     if (!aIdx.length) return 1;
     if (!bIdx.length) return -1;
 
     const aMin = Math.min(...aIdx);
     const bMin = Math.min(...bIdx);
-    if (aMin !== bMin) return aMin - bMin;   // lower start first
+    if (aMin !== bMin) return aMin - bMin;
 
-        const aMax = Math.max(...aIdx);
+    const aMax = Math.max(...aIdx);
     const bMax = Math.max(...bIdx);
-    if (aMax !== bMax) return aMax - bMax;    // shorter range first if tied
+    if (aMax !== bMax) return aMax - bMax;
 
-    // Same level band → use manual order as tiebreaker
-    const aOrd = a.order != null ? a.order : 0;
-    const bOrd = b.order != null ? b.order : 0;
-    if (aOrd !== bOrd) return aOrd - bOrd;
-
-    // Final fallback: alphabetical
-    return (a.name || "").localeCompare(b.name || "");
+    return compareOrder(a, b);
   });
+}
+
+function compareOrder(a, b) {
+  const aOrd = a.order != null ? a.order : 0;
+  const bOrd = b.order != null ? b.order : 0;
+  if (aOrd !== bOrd) return aOrd - bOrd;
+  return (a.name || "").localeCompare(b.name || "");
 }
  async function moveExercise(id, direction) {
   const section = currentSection;
