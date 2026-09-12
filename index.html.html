@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Language Exercise Database</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg: #f7f8fa; --card: #fff; --ink: #1a1d23; --muted: #6b7280;
+    --line: #e4e6eb; --accent: #3b6ef6; --accent-soft: #e9efff;
+    --ok: #0f9d70; --warn: #c2410c; --r: 12px;
+  }
+  body {
+    margin: 0; padding: 24px 16px 64px; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
+  h1 { font-size: 22px; margin: 0; font-weight: 650; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; font-weight: 650; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--r); padding: 18px 20px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn {
+    font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 9px;
+    border: 1px solid var(--line); background: #fff; color: var(--ink);
+    cursor: pointer; transition: .12s;
+  }
+  .btn:hover { background: #f0f1f4; }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--muted); }
+  .btn.ghost:hover { background: #eceef2; color: var(--ink); }
+  .btn.danger { color: #b91c1c; }
+  .btn.danger:hover { background: #fee2e2; }
+  label { display: block; font-size: 13px; font-weight: 550; color: #374151; margin-top: 12px; }
+  input, textarea, select {
+    width: 100%; margin-top: 5px; padding: 9px 11px; border: 1px solid var(--line);
+    border-radius: 9px; font: inherit; font-size: 14px; background: #fff; color: var(--ink);
+  }
+  input:focus, textarea:focus, select:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  textarea { resize: vertical; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .section-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+  .section-nav button {
+    font: inherit; font-size: 13px; padding: 7px 13px; border-radius: 20px;
+    border: 1px solid var(--line); background: #fff; cursor: pointer; transition: .12s;
+  }
+  .section-nav button:hover { background: #f0f1f4; }
+  .section-nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .exercise { border: 1px solid var(--line); border-radius: 11px; padding: 15px 17px; margin-bottom: 10px; background: #fff; }
+  .exercise-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+  .exercise-name { font-weight: 650; font-size: 15px; }
+  .exercise-desc { margin-top: 7px; color: #374151; font-size: 14px; }
+  .exercise-algo { margin-top: 9px; padding: 10px 12px; background: #f9fafb; border-radius: 8px; font-size: 13px; color: #4b5563; white-space: pre-wrap; }
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tag { font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 20px; }
+  .tag.primary { background: var(--accent-soft); color: #1e4fd8; }
+  .tag.secondary { background: #f1ecfe; color: #6d28d9; }
+  .empty { color: var(--muted); font-size: 13.5px; padding: 8px 0; }
+  .hidden { display: none !important; }
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #1a1d23; color: #fff; padding: 10px 18px; border-radius: 10px;
+    font-size: 13px; z-index: 100; opacity: 0; transition: opacity .25s; pointer-events: none;
+  }
+  .toast.show { opacity: 1; }
+  .auth-bar { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="row" style="justify-content: space-between; align-items: flex-start;">
+    <div>
+      <h1>Language Exercise Database</h1>
+      <div style="color:var(--muted);font-size:13px;margin-top:4px;">A personal collection of exercises for language learning.</div>
+    </div>
+    <div class="auth-bar" id="authBar"></div>
+  </div>
+
+  <!-- SIGN IN (shown when not authenticated) -->
+  <div class="card" id="signInCard">
+    <h2>Sign in to manage exercises</h2>
+    <div class="empty" style="margin-bottom:10px;">Students can browse without signing in. Sign in only if you want to add or edit exercises.</div>
+    <div class="grid2">
+      <div>
+        <label>Email</label>
+        <input type="email" id="email" placeholder="you@example.com">
+      </div>
+      <div>
+        <label>Password</label>
+        <input type="password" id="password" placeholder="••••••••">
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px;">
+      <button class="btn primary" id="signInBtn">Sign in</button>
+      <button class="btn" id="signUpBtn">Create account</button>
+      <button class="btn ghost" id="skipBtn">Browse as student</button>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT FORM (shown when authenticated) -->
+  <div class="card hidden" id="formCard">
+    <h2 id="formTitle">Add an exercise</h2>
+    <form id="exerciseForm">
+      <div class="grid2">
+        <div>
+          <label>Name of exercise</label>
+          <input id="f-name" required placeholder="Shadowing with subtitles">
+        </div>
+        <div>
+          <label>Primary section</label>
+          <select id="f-primary" required>
+            <option value="">Choose…</option>
+            <option>Vocabulary</option>
+            <option>Grammar</option>
+            <option>Listening</option>
+            <option>Speaking</option>
+            <option>Reading</option>
+            <option>Writing</option>
+            <option>Accent</option>
+            <option>Culture</option>
+          </select>
+        </div>
+      </div>
+      <label>Description</label>
+      <textarea id="f-desc" rows="2" placeholder="What is this exercise and what does it train?"></textarea>
+      <label>Secondary tags (comma-separated)</label>
+      <input id="f-secondary" placeholder="Listening, Speaking">
+      <label>Algorithm to follow (optional)</label>
+      <textarea id="f-algo" rows="3" placeholder="1. Play the audio. 2. Read the subtitle. 3. Repeat aloud."></textarea>
+      <div class="row" style="margin-top:14px;">
+        <button type="submit" class="btn primary" id="submitBtn">Add exercise</button>
+        <button type="button" class="btn hidden" id="cancelEdit">Cancel edit</button>
+        <button type="button" class="btn ghost" id="signOutBtn">Sign out</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- SECTION NAVIGATION -->
+  <div class="card">
+    <h2>Browse by section</h2>
+    <div class="section-nav" id="sectionNav"></div>
+  </div>
+
+  <!-- EXERCISE LIST -->
+  <div class="card">
+    <h2 id="listTitle">All exercises</h2>
+    <div id="exerciseList"></div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword,
+  signOut, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+/* ====================== REPLACE WITH YOUR CONFIG ====================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyDYj-8rvoTWgqCvg-1uvhwJ4Bf-iRakpiM",
+  authDomain: "sla-db.firebaseapp.com",
+  projectId: "sla-db",
+  storageBucket: "sla-db.firebasestorage.app",
+  messagingSenderId: "1011500709503",
+  appId: "1:1011500709503:web:0042f16fcf8b33a6df314a"
+};
+/* ===================================================================== */
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+const SECTIONS = ["Vocabulary","Grammar","Listening","Speaking","Reading","Writing","Accent","Culture"];
+const COLLECTION = "exercises";
+
+let allExercises = [];
+let currentSection = null;
+let editingId = null;
+let currentUser = null;
+
+/* ---------- helpers ---------- */
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c =>
+    ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function toast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.classList.add("show");
+  setTimeout(() => el.classList.remove("show"), 2200);
+}
+function uidFromDoc(d) { return d.id; }
+
+/* ---------- auth ---------- */
+document.getElementById("signInBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const pass = document.getElementById("password").value;
+  try {
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch (e) { toast("Sign in failed: " + e.message); }
+});
+document.getElementById("signUpBtn").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const pass = document.getElementById("password").value;
+  try {
+    await createUserWithEmailAndPassword(auth, email, pass);
+    toast("Account created.");
+  } catch (e) { toast("Sign up failed: " + e.message); }
+});
+document.getElementById("skipBtn").addEventListener("click", () => {
+  document.getElementById("signInCard").classList.add("hidden");
+});
+document.getElementById("signOutBtn").addEventListener("click", () => signOut(auth));
+
+onAuthStateChanged(auth, user => {
+  currentUser = user;
+  const bar = document.getElementById("authBar");
+  const signInCard = document.getElementById("signInCard");
+  const formCard = document.getElementById("formCard");
+
+  if (user) {
+    bar.innerHTML = `Signed in as <strong>${esc(user.email)}</strong>`;
+    signInCard.classList.add("hidden");
+    formCard.classList.remove("hidden");
+  } else {
+    bar.innerHTML = "";
+    signInCard.classList.remove("hidden");
+    formCard.classList.add("hidden");
+  }
+  renderList();
+});
+
+/* ---------- section nav ---------- */
+function renderSectionNav() {
+  const nav = document.getElementById("sectionNav");
+  nav.innerHTML = `<button class="${currentSection === null ? "active" : ""}" data-sec="">All</button>` +
+    SECTIONS.map(s =>
+      `<button class="${currentSection === s ? "active" : ""}" data-sec="${s}">${s}</button>`
+    ).join("");
+
+  nav.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentSection = btn.dataset.sec || null;
+      renderSectionNav();
+      renderList();
+    });
+  });
+}
+
+/* ---------- exercise list ---------- */
+function renderList() {
+  const box = document.getElementById("exerciseList");
+  const title = document.getElementById("listTitle");
+
+  let list = allExercises;
+  if (currentSection) {
+    list = list.filter(e =>
+      e.primary === currentSection ||
+      (e.secondary || []).includes(currentSection)
+    );
+  }
+
+  title.textContent = currentSection ? `Exercises — ${currentSection}` : "All exercises";
+
+  if (!list.length) {
+    box.innerHTML = `<div class="empty">${allExercises.length ? "No exercises match this section." : "No exercises yet. Sign in to add some."}</div>`;
+    return;
+  }
+
+  box.innerHTML = list.map(e => `
+    <div class="exercise">
+      <div class="exercise-top">
+        <div>
+          <div class="exercise-name">${esc(e.name)}</div>
+          <div class="tags">
+            <span class="tag primary">${esc(e.primary)}</span>
+            ${(e.secondary || []).map(t => `<span class="tag secondary">${esc(t)}</span>`).join("")}
+          </div>
+        </div>
+        ${currentUser ? `
+          <div class="row" style="flex:0 0 auto">
+            <button class="btn ghost" data-edit="${e.id}">Edit</button>
+            <button class="btn ghost danger" data-del="${e.id}">Delete</button>
+          </div>` : ""}
+      </div>
+      ${e.description ? `<div class="exercise-desc">${esc(e.description)}</div>` : ""}
+      ${e.algorithm ? `<div class="exercise-algo">${esc(e.algorithm)}</div>` : ""}
+    </div>
+  `).join("");
+
+  // wire edit/delete
+  box.querySelectorAll("[data-edit]").forEach(b =>
+    b.addEventListener("click", () => startEdit(b.dataset.edit)));
+  box.querySelectorAll("[data-del]").forEach(b =>
+    b.addEventListener("click", () => deleteExercise(b.dataset.del)));
+}
+
+/* ---------- form: add / edit ---------- */
+document.getElementById("exerciseForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  if (!currentUser) { toast("Sign in first."); return; }
+
+  const name = document.getElementById("f-name").value.trim();
+  const primary = document.getElementById("f-primary").value;
+  const description = document.getElementById("f-desc").value.trim();
+  const secondary = document.getElementById("f-secondary").value
+    .split(",").map(x => x.trim()).filter(Boolean);
+  const algorithm = document.getElementById("f-algo").value.trim();
+
+  if (!name || !primary) { toast("Name and primary section are required."); return; }
+
+  const payload = { name, primary, description, secondary, algorithm };
+
+  try {
+    if (editingId) {
+      await updateDoc(doc(db, COLLECTION, editingId), payload);
+      toast("Exercise updated.");
+    } else {
+      await addDoc(collection(db, COLLECTION), payload);
+      toast("Exercise added.");
+    }
+    resetForm();
+    await loadExercises();
+  } catch (err) {
+    toast("Save failed: " + err.message);
+  }
+});
+
+document.getElementById("cancelEdit").addEventListener("click", resetForm);
+
+function resetForm() {
+  editingId = null;
+  document.getElementById("exerciseForm").reset();
+  document.getElementById("formTitle").textContent = "Add an exercise";
+  document.getElementById("submitBtn").textContent = "Add exercise";
+  document.getElementById("cancelEdit").classList.add("hidden");
+}
+
+function startEdit(id) {
+  const e = allExercises.find(x => x.id === id);
+  if (!e) return;
+  editingId = id;
+  document.getElementById("f-name").value = e.name || "";
+  document.getElementById("f-primary").value = e.primary || "";
+  document.getElementById("f-desc").value = e.description || "";
+  document.getElementById("f-secondary").value = (e.secondary || []).join(", ");
+  document.getElementById("f-algo").value = e.algorithm || "";
+  document.getElementById("formTitle").textContent = "Edit exercise";
+  document.getElementById("submitBtn").textContent = "Save changes";
+  document.getElementById("cancelEdit").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+async function deleteExercise(id) {
+  if (!confirm("Delete this exercise?")) return;
+  try {
+    await deleteDoc(doc(db, COLLECTION, id));
+    toast("Deleted.");
+    await loadExercises();
+  } catch (e) { toast("Delete failed: " + e.message); }
+}
+
+/* ---------- load data ---------- */
+async function loadExercises() {
+  try {
+    const snap = await getDocs(collection(db, COLLECTION));
+    allExercises = snap.docs.map(d => ({ id: uidFromDoc(d), ...d.data() }));
+    renderList();
+  } catch (e) {
+    console.error(e);
+    document.getElementById("exerciseList").innerHTML =
+      `<div class="empty">Could not load exercises: ${esc(e.message)}</div>`;
+  }
+}
+
+/* ---------- init ---------- */
+renderSectionNav();
+loadExercises();
+</script>
+</body>
+</html>
