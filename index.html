@@ -351,6 +351,8 @@
 
       <label>Tips / General advice (optional)</label>
       <textarea id="f-tips" rows="2" placeholder="Useful tips or things to keep in mind."></textarea>
+           <label>Manual order within this level (optional, lower = earlier)</label>
+      <input id="f-order" type="number" step="1" placeholder="0">
       <div class="row" style="margin-top:14px;">
         <button type="submit" class="btn primary" id="submitBtn">Add exercise</button>
         <button type="button" class="btn hidden" id="cancelEdit">Cancel edit</button>
@@ -509,9 +511,17 @@ const LEVEL_ORDER = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
     const bMin = Math.min(...bIdx);
     if (aMin !== bMin) return aMin - bMin;   // lower start first
 
-    const aMax = Math.max(...aIdx);
+        const aMax = Math.max(...aIdx);
     const bMax = Math.max(...bIdx);
-    return aMax - bMax;                       // shorter range first if tied
+    if (aMax !== bMax) return aMax - bMax;    // shorter range first if tied
+
+    // Same level band → use manual order as tiebreaker
+    const aOrd = a.order != null ? a.order : 0;
+    const bOrd = b.order != null ? b.order : 0;
+    if (aOrd !== bOrd) return aOrd - bOrd;
+
+    // Final fallback: alphabetical
+    return (a.name || "").localeCompare(b.name || "");
   });
 }
 function classifyLevels(levels) {
@@ -818,12 +828,14 @@ document.getElementById("exerciseForm").addEventListener("submit", async e => {
     })
     .filter(Boolean);
   const tips = document.getElementById("f-tips").value.trim();
+   const orderRaw = document.getElementById("f-order").value.trim();
+  const order = orderRaw === "" ? 0 : Number(orderRaw);
   const levels = Array.from(document.querySelectorAll(".f-level:checked")).map(cb => cb.value);
    const linkedIdsFinal = linkedIds.slice();
 
   if (!name || !primary) { toast("Name and primary section are required."); return; }
 
-    const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels, linkedIds: linkedIdsFinal };
+      const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels, linkedIds: linkedIdsFinal, order };
 
   try {
     if (editingId) {
@@ -868,6 +880,7 @@ function startEdit(id) {
   document.getElementById("f-desc").value = e.description || "";
   document.getElementById("f-secondary").value = (e.secondary || []).join(", ");
   document.getElementById("f-tips").value = e.tips || "";
+   document.getElementById("f-order").value = e.order != null ? e.order : "";
   const savedLevels = Array.isArray(e.levels) ? e.levels : [];
   document.querySelectorAll(".f-level").forEach(cb => {
     cb.checked = savedLevels.includes(cb.value);
