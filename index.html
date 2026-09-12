@@ -157,6 +157,56 @@
   .level-badge.advanced     { background: #2a1616; border-color: #5a2d2d; color: #e88a8a; }
   .level-badge.mixed        { background: #1f1a2e; border-color: #3d2d5a; color: #b08ee0; }
    .level-badge.any          { background: #1a1d23; border-color: #3a4252; color: #b0b8c6; }
+   /* ---------- Folder view (All tab) ---------- */
+  .folder-tile {
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    padding: 16px 18px;
+    background: var(--card);
+    cursor: pointer;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    min-width: 0;
+  }
+  .folder-tile:hover {
+    box-shadow: 0 10px 28px rgba(0,0,0,0.55);
+    transform: translateY(-2px);
+  }
+  .folder-tile-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .folder-tile-name { font-size: 17px; font-weight: 650; }
+  .folder-tile-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    background: var(--card-2);
+    padding: 2px 9px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+  }
+  .folder-preview {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .folder-preview-item {
+    font-size: 13px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .folder-more {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    font-style: italic;
+    opacity: 0.8;
+  }
    /* Linked exercises — form chips */
   .link-chip {
     display: inline-flex; align-items: center; gap: 6px;
@@ -570,38 +620,82 @@ function renderList() {
   const box = document.getElementById("exerciseList");
   const title = document.getElementById("listTitle");
 
-    let list = allExercises;
-  if (currentSection) {
-    list = list.filter(e =>
-      e.primary === currentSection ||
-      (e.secondary || []).includes(currentSection)
-    );
-    // Primary matches float to the top; secondary matches come after
-    list = list.slice().sort((a, b) => {
-      const aRank = a.primary === currentSection ? 0 : 1;
-      const bRank = b.primary === currentSection ? 0 : 1;
-      return aRank - bRank;
+  /* ---------- Folder view (when "All" is selected) ---------- */
+  if (!currentSection) {
+    title.textContent = "All exercises";
+
+    if (!allExercises.length) {
+      box.innerHTML = '<div class="empty">No exercises yet. Sign in to add some.</div>';
+      return;
+    }
+
+    // Group exercises by primary section
+    const bySection = {};
+    SECTIONS.forEach(s => { bySection[s] = []; });
+    allExercises.forEach(e => {
+      if (bySection[e.primary]) bySection[e.primary].push(e);
     });
+
+    const nonEmpty = SECTIONS.filter(s => bySection[s].length > 0);
+
+    box.innerHTML = nonEmpty.map(sec => {
+      const items = bySection[sec];
+      const preview = items.slice(0, 3)
+        .map(e => `<span class="folder-preview-item">${esc(e.name)}</span>`)
+        .join("");
+      const more = items.length > 3
+        ? `<div class="folder-more">+${items.length - 3} more</div>`
+        : "";
+      return `
+        <div class="folder-tile bg-${sec}" data-folder="${sec}">
+          <div class="folder-tile-top">
+            <div class="folder-tile-name">${esc(sec)}</div>
+            <div class="folder-tile-count">${items.length}</div>
+          </div>
+          <div class="folder-preview">${preview}${more}</div>
+        </div>`;
+    }).join("");
+
+    box.querySelectorAll("[data-folder]").forEach(tile => {
+      tile.addEventListener("click", () => {
+        currentSection = tile.dataset.folder;
+        renderSectionNav();
+        renderList();
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
+    });
+    return;
   }
 
-  title.textContent = currentSection ? `Exercises — ${currentSection}` : "All exercises";
+  /* ---------- Regular exercise view (section selected) ---------- */
+  let list = allExercises.filter(e =>
+    e.primary === currentSection ||
+    (e.secondary || []).includes(currentSection)
+  );
+  list = list.slice().sort((a, b) => {
+    const aRank = a.primary === currentSection ? 0 : 1;
+    const bRank = b.primary === currentSection ? 0 : 1;
+    return aRank - bRank;
+  });
+
+  title.textContent = `Exercises — ${currentSection}`;
 
   if (!list.length) {
-    box.innerHTML = `<div class="empty">${allExercises.length ? "No exercises match this section." : "No exercises yet. Sign in to add some."}</div>`;
+    box.innerHTML = '<div class="empty">No exercises match this section.</div>';
     return;
   }
 
   box.innerHTML = list.map(e => `
-        <div class="exercise bg-${e.primary}" data-id="${e.id}">
+    <div class="exercise bg-${e.primary}" data-id="${e.id}">
       <div class="exercise-top">
         <div>
           <div class="exercise-name">${esc(e.name)}</div>
-                    ${e.altNames ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">Also known as: ${esc(e.altNames)}</div>` : ""}
+          ${e.altNames ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">Also known as: ${esc(e.altNames)}</div>` : ""}
           <div class="tags">
             <span class="tag primary tag-${e.primary.toLowerCase()}">${esc(e.primary)}</span>
             ${(e.secondary || []).map(t => `<span class="tag secondary tag-${t.toLowerCase()}">${esc(t)}</span>`).join("")}
           </div>
-                    ${renderLevelBadge(e.levels)}
+          ${renderLevelBadge(e.levels)}
         </div>
         ${currentUser ? `
           <div class="row" style="flex:0 0 auto">
@@ -610,9 +704,9 @@ function renderList() {
           </div>` : ""}
       </div>
       ${e.description ? `<div class="exercise-desc">${esc(e.description)}</div>` : ""}
-                  ${renderSteps(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []))}
+      ${renderSteps(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []))}
       ${e.tips ? `<div class="tips-box"><strong>💡 Tips:</strong> ${esc(e.tips)}</div>` : ""}
-            ${renderLinked(e.linkedIds)}
+      ${renderLinked(e.linkedIds)}
     </div>
   `).join("");
 
@@ -621,12 +715,11 @@ function renderList() {
     b.addEventListener("click", () => startEdit(b.dataset.edit)));
   box.querySelectorAll("[data-del]").forEach(b =>
     b.addEventListener("click", () => deleteExercise(b.dataset.del)));
-   // Make the card expand/collapse when clicked
-    box.querySelectorAll(".exercise").forEach(card => {
+
+  // expand/collapse on click
+  box.querySelectorAll(".exercise").forEach(card => {
     card.addEventListener("click", (e) => {
-      // If the user clicked the Edit or Delete buttons, don't toggle the card
       if (e.target.closest('button')) return;
-      // If the user clicked a linked chip, jump to that exercise
       const jump = e.target.closest("[data-jump]");
       if (jump) {
         e.stopPropagation();
