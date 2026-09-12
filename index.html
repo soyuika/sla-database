@@ -156,6 +156,49 @@
   .level-badge.intermediate { background: #2a2415; border-color: #5a5028; color: #e0c878; }
   .level-badge.advanced     { background: #2a1616; border-color: #5a2d2d; color: #e88a8a; }
   .level-badge.mixed        { background: #1f1a2e; border-color: #3d2d5a; color: #b08ee0; }
+   /* Linked exercises — form chips */
+  .link-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 20px;
+    background: var(--card-2); border: 1px solid var(--line);
+    font-size: 12.5px; color: var(--ink);
+  }
+  .link-chip button {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    padding: 0; font: inherit; line-height: 1; font-size: 12px;
+  }
+  .link-chip button:hover { color: #f87171; }
+
+  /* Linked exercises — search results */
+  #f-link-results:empty { display: none; }
+  #f-link-results {
+    margin-top: 6px; border: 1px solid var(--line); border-radius: 9px;
+    overflow: hidden; background: var(--card-2);
+  }
+  #f-link-results button {
+    display: block; width: 100%; text-align: left; padding: 9px 12px;
+    background: transparent; border: none; color: var(--ink); cursor: pointer;
+    font: inherit; font-size: 14px; border-bottom: 1px solid var(--line);
+  }
+  #f-link-results button:last-child { border-bottom: none; }
+  #f-link-results button:hover { background: #232833; }
+  #f-link-results .no-results { padding: 9px 12px; color: var(--muted); font-size: 13px; }
+
+  /* Linked exercises — display on card */
+  .linked-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin: 0; max-height: 0; overflow: hidden; opacity: 0;
+    transition: all 0.3s ease;
+  }
+  .exercise.open .linked-row { max-height: 200px; opacity: 1; margin-top: 10px; }
+  .linked-chip {
+    display: inline-block;
+    padding: 3px 10px; border-radius: 20px;
+    background: #1e2540; border: 1px solid #3a4a80; color: #9ab0f0;
+    font-size: 11.5px; font-weight: 550; cursor: pointer;
+    transition: .12s;
+  }
+  .linked-chip:hover { background: #2a3460; border-color: #5a6fc0; }
 
   .empty { color: var(--muted); font-size: 14.5px; padding: 8px 0; }
   .hidden { display: none !important; }
@@ -261,6 +304,10 @@
         <label class="level-check"><input type="checkbox" class="f-level" value="C1"><span>C1</span></label>
         <label class="level-check"><input type="checkbox" class="f-level" value="C2"><span>C2</span></label>
       </div>
+      <label>Linked exercises (recommended alongside this one)</label>
+      <div id="linked-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;"></div>
+      <input id="f-link-search" placeholder="Search exercises to link..." style="margin-top:6px;">
+      <div id="f-link-results"></div>
       <label>Algorithm / Steps (optional)</label>
       <div id="steps-container" style="margin-top: 5px;"></div>
       <button type="button" class="btn" id="addStepBtn" style="margin-top: 8px; font-size: 12px; padding: 6px 12px; border-style: dashed;">+ Add Step</button>
@@ -415,7 +462,77 @@ function renderLevelBadge(levels) {
   if (!text) return "";
   return `<div class="level-row"><span class="level-badge ${cls}">${esc(text)}</span></div>`;
 }
-/* ---------- exercise list ---------- */
+/* ---------- linked exercises ---------- */
+let linkedIds = [];
+
+function renderLinkedChips() {
+  const box = document.getElementById("linked-chips");
+  if (!linkedIds.length) { box.innerHTML = ""; return; }
+  box.innerHTML = linkedIds.map(id => {
+    const e = allExercises.find(x => x.id === id);
+    const name = e ? e.name : "(deleted exercise)";
+    return `<span class="link-chip">${esc(name)}<button type="button" data-unlink="${id}" title="Remove">✕</button></span>`;
+  }).join("");
+  box.querySelectorAll("[data-unlink]").forEach(b =>
+    b.addEventListener("click", () => {
+      linkedIds = linkedIds.filter(id => id !== b.dataset.unlink);
+      renderLinkedChips();
+    })
+  );
+}
+
+function renderLinked(ids) {
+  if (!ids || !ids.length) return "";
+  const chips = ids.map(id => {
+    const linked = allExercises.find(x => x.id === id);
+    if (!linked) return "";
+    return `<span class="linked-chip" data-jump="${id}">↗ ${esc(linked.name)}</span>`;
+  }).filter(Boolean).join("");
+  if (!chips) return "";
+  return `<div class="linked-row">${chips}</div>`;
+}
+
+function jumpToExercise(id) {
+  const target = document.querySelector(`.exercise[data-id="${id}"]`);
+  if (!target) { toast("That exercise isn't in the current view."); return; }
+  target.classList.add("open");
+  target.scrollIntoView({ behavior: "smooth", block: "center" });
+  const original = target.style.boxShadow;
+  target.style.boxShadow = "0 0 0 2px var(--accent)";
+  setTimeout(() => { target.style.boxShadow = original; }, 1200);
+}
+
+// Wire search input (run once)
+(function initLinkSearch() {
+  const search = document.getElementById("f-link-search");
+  const results = document.getElementById("f-link-results");
+  if (!search || !results) return;
+
+  search.addEventListener("input", () => {
+    const q = search.value.trim().toLowerCase();
+    if (!q) { results.innerHTML = ""; return; }
+    const matches = allExercises
+      .filter(e => e.id !== editingId && !linkedIds.includes(e.id))
+      .filter(e => e.name.toLowerCase().includes(q))
+      .slice(0, 8);
+    if (!matches.length) {
+      results.innerHTML = `<div class="no-results">No matches</div>`;
+    } else {
+      results.innerHTML = matches.map(e =>
+        `<button type="button" data-link="${e.id}">${esc(e.name)}</button>`
+      ).join("");
+      results.querySelectorAll("[data-link]").forEach(b =>
+        b.addEventListener("click", () => {
+          linkedIds.push(b.dataset.link);
+          renderLinkedChips();
+          search.value = "";
+          results.innerHTML = "";
+        })
+      );
+    }
+  });
+})();
+ /* ---------- exercise list ---------- */
 function renderList() {
   const box = document.getElementById("exerciseList");
   const title = document.getElementById("listTitle");
@@ -442,7 +559,7 @@ function renderList() {
   }
 
   box.innerHTML = list.map(e => `
-    <div class="exercise bg-${e.primary}">
+        <div class="exercise bg-${e.primary}" data-id="${e.id}">
       <div class="exercise-top">
         <div>
           <div class="exercise-name">${esc(e.name)}</div>
@@ -462,6 +579,7 @@ function renderList() {
       ${e.description ? `<div class="exercise-desc">${esc(e.description)}</div>` : ""}
                   ${renderSteps(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []))}
       ${e.tips ? `<div class="tips-box"><strong>💡 Tips:</strong> ${esc(e.tips)}</div>` : ""}
+            ${renderLinked(e.linkedIds)}
     </div>
   `).join("");
 
@@ -471,10 +589,17 @@ function renderList() {
   box.querySelectorAll("[data-del]").forEach(b =>
     b.addEventListener("click", () => deleteExercise(b.dataset.del)));
    // Make the card expand/collapse when clicked
-  box.querySelectorAll(".exercise").forEach(card => {
+    box.querySelectorAll(".exercise").forEach(card => {
     card.addEventListener("click", (e) => {
       // If the user clicked the Edit or Delete buttons, don't toggle the card
       if (e.target.closest('button')) return;
+      // If the user clicked a linked chip, jump to that exercise
+      const jump = e.target.closest("[data-jump]");
+      if (jump) {
+        e.stopPropagation();
+        jumpToExercise(jump.dataset.jump);
+        return;
+      }
       card.classList.toggle("open");
     });
   });
@@ -529,10 +654,11 @@ document.getElementById("exerciseForm").addEventListener("submit", async e => {
     .filter(Boolean);
   const tips = document.getElementById("f-tips").value.trim();
   const levels = Array.from(document.querySelectorAll(".f-level:checked")).map(cb => cb.value);
+   const linkedIdsFinal = linkedIds.slice();
 
   if (!name || !primary) { toast("Name and primary section are required."); return; }
 
-  const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels };
+    const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels, linkedIds: linkedIdsFinal };
 
   try {
     if (editingId) {
@@ -556,6 +682,12 @@ function resetForm() {
   document.getElementById("exerciseForm").reset();
   document.getElementById("steps-container").innerHTML = "";
   addStepField();
+   linkedIds = [];
+  renderLinkedChips();
+  const searchEl = document.getElementById("f-link-search");
+  if (searchEl) searchEl.value = "";
+  const resultsEl = document.getElementById("f-link-results");
+  if (resultsEl) resultsEl.innerHTML = "";
   document.getElementById("formTitle").textContent = "Add an exercise";
   document.getElementById("submitBtn").textContent = "Add exercise";
   document.getElementById("cancelEdit").classList.add("hidden");
@@ -575,6 +707,12 @@ function startEdit(id) {
   document.querySelectorAll(".f-level").forEach(cb => {
     cb.checked = savedLevels.includes(cb.value);
   });
+   linkedIds = Array.isArray(e.linkedIds) ? e.linkedIds.slice() : [];
+  renderLinkedChips();
+  const searchEl2 = document.getElementById("f-link-search");
+  if (searchEl2) searchEl2.value = "";
+  const resultsEl2 = document.getElementById("f-link-results");
+  if (resultsEl2) resultsEl2.innerHTML = "";
   const container = document.getElementById("steps-container");
   container.innerHTML = "";
   const steps = Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []);
