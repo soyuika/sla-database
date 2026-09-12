@@ -351,12 +351,18 @@ function renderList() {
   const box = document.getElementById("exerciseList");
   const title = document.getElementById("listTitle");
 
-  let list = allExercises;
+    let list = allExercises;
   if (currentSection) {
     list = list.filter(e =>
       e.primary === currentSection ||
       (e.secondary || []).includes(currentSection)
     );
+    // Primary matches float to the top; secondary matches come after
+    list = list.slice().sort((a, b) => {
+      const aRank = a.primary === currentSection ? 0 : 1;
+      const bRank = b.primary === currentSection ? 0 : 1;
+      return aRank - bRank;
+    });
   }
 
   title.textContent = currentSection ? `Exercises — ${currentSection}` : "All exercises";
