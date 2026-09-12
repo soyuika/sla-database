@@ -408,6 +408,8 @@ let allExercises = [];
 let currentSection = null;
 let editingId = null;
 let currentUser = null;
+ let isAdmin = false;
+const ADMIN_EMAIL = "ma8gle@gmail.com"; 
 
 /* ---------- helpers ---------- */
 function esc(s) {
@@ -445,6 +447,7 @@ document.getElementById("signOutBtn").addEventListener("click", () => signOut(au
 
 onAuthStateChanged(auth, user => {
   currentUser = user;
+  isAdmin = !!(user && user.email === ADMIN_EMAIL);
   const bar = document.getElementById("authBar");
   const signInCard = document.getElementById("signInCard");
   const formCard = document.getElementById("formCard");
@@ -452,7 +455,12 @@ onAuthStateChanged(auth, user => {
   if (user) {
     bar.innerHTML = `Signed in as <strong>${esc(user.email)}</strong>`;
     signInCard.classList.add("hidden");
-    formCard.classList.remove("hidden");
+    // ONLY show the form if this is the admin
+    if (isAdmin) {
+      formCard.classList.remove("hidden");
+    } else {
+      formCard.classList.add("hidden");
+    }
   } else {
     bar.innerHTML = "";
     signInCard.classList.remove("hidden");
@@ -702,7 +710,7 @@ function renderList() {
           </div>
           ${renderLevelBadge(e.levels)}
         </div>
-        ${currentUser ? `
+        ${isAdmin ? `
           <div class="row" style="flex:0 0 auto">
             <button class="btn ghost" data-edit="${e.id}">Edit</button>
             <button class="btn ghost danger" data-del="${e.id}">Delete</button>
