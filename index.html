@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Language Exercise Database</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E📚%3C/text%3E%3C/svg%3E">
 <style>
   * { box-sizing: border-box; }
   :root {
@@ -65,10 +65,22 @@
   .bg-Culture { background-color: #f4f6f8; }
   .exercise-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
   .exercise-name { font-weight: 650; font-size: 15px; }
+   /* Step List Inputs */
+  .step-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
+  .step-row input { margin-top: 0; flex: 1; }
+  .step-row button { flex: 0 0 auto; padding: 8px 12px; border-color: #fee2e2; color: #b91c1c; background: #fff; cursor: pointer; border-radius: 9px; font: inherit; font-size: 13px; }
+  .step-row button:hover { background: #fee2e2; }
+  
+  /* Algorithm & Tips display in the card */
+  .exercise-steps { margin: 0; padding-left: 20px; font-size: 13px; color: #4b5563; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; }
+  .exercise-steps li { margin-bottom: 3px; }
+  .tips-box { margin: 0; padding: 0 12px; background: #fffbeb; border-left: 3px solid #f59e0b; border-radius: 6px; font-size: 12px; color: #78350f; white-space: pre-wrap; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; }
   .exercise-desc { margin-top: 0; color: #374151; font-size: 13px; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; }
   .exercise-algo { margin-top: 0; padding: 0; background: #f9fafb; border-radius: 8px; font-size: 12px; color: #4b5563; white-space: pre-wrap; max-height: 0; overflow: hidden; opacity: 0; transition: all 0.3s ease; }
   .exercise.open .exercise-desc { max-height: 200px; opacity: 1; margin-top: 7px; margin-bottom: 7px; }
   .exercise.open .exercise-algo { max-height: 300px; opacity: 1; padding: 10px 12px; margin-top: 9px; }
+  .exercise.open .exercise-steps { max-height: 500px; opacity: 1; margin-top: 9px; }
+  .exercise.open .tips-box { max-height: 200px; opacity: 1; padding: 9px 12px; margin-top: 10px; }
   .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .tag { font-size: 11px; font-weight: 650; padding: 2px 8px; border-radius: 20px; }
   .tag.primary { background: var(--accent-soft); color: #1e4fd8; }
@@ -146,8 +158,12 @@
       <textarea id="f-desc" rows="2" placeholder="What is this exercise and what does it train?"></textarea>
       <label>Secondary tags (comma-separated)</label>
       <input id="f-secondary" placeholder="Listening, Speaking">
-      <label>Algorithm to follow (optional)</label>
-      <textarea id="f-algo" rows="3" placeholder="1. Play the audio. 2. Read the subtitle. 3. Repeat aloud."></textarea>
+      <label>Algorithm / Steps (optional)</label>
+      <div id="steps-container" style="margin-top: 5px;"></div>
+      <button type="button" class="btn" id="addStepBtn" style="margin-top: 8px; font-size: 12px; padding: 6px 12px; border-style: dashed;">+ Add Step</button>
+
+      <label>Tips / General advice (optional)</label>
+      <textarea id="f-tips" rows="2" placeholder="Useful tips or things to keep in mind."></textarea>
       <div class="row" style="margin-top:14px;">
         <button type="submit" class="btn primary" id="submitBtn">Add exercise</button>
         <button type="button" class="btn hidden" id="cancelEdit">Cancel edit</button>
@@ -312,7 +328,10 @@ function renderList() {
           </div>` : ""}
       </div>
       ${e.description ? `<div class="exercise-desc">${esc(e.description)}</div>` : ""}
-      ${e.algorithm ? `<div class="exercise-algo">${esc(e.algorithm)}</div>` : ""}
+            ${(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : [])).length 
+        ? `<ol class="exercise-steps">${(Array.isArray(e.algorithm) ? e.algorithm : e.algorithm.split("\n")).map(step => `<li>${esc(step)}</li>`).join("")}</ol>` 
+        : ""}
+      ${e.tips ? `<div class="tips-box"><strong>💡 Tips:</strong> ${esc(e.tips)}</div>` : ""}
     </div>
   `).join("");
 
@@ -342,11 +361,14 @@ document.getElementById("exerciseForm").addEventListener("submit", async e => {
   const altNames = document.getElementById("f-alt").value.trim();
   const secondary = document.getElementById("f-secondary").value
     .split(",").map(x => x.trim()).filter(Boolean);
-  const algorithm = document.getElementById("f-algo").value.trim();
+    const algorithm = Array.from(document.querySelectorAll("#steps-container input"))
+    .map(input => input.value.trim())
+    .filter(Boolean);
+  const tips = document.getElementById("f-tips").value.trim();
 
   if (!name || !primary) { toast("Name and primary section are required."); return; }
 
-  const payload = { name, primary, description, secondary, algorithm, altNames };
+  const payload = { name, primary, description, secondary, algorithm, altNames, tips };
 
   try {
     if (editingId) {
@@ -368,6 +390,8 @@ document.getElementById("cancelEdit").addEventListener("click", resetForm);
 function resetForm() {
   editingId = null;
   document.getElementById("exerciseForm").reset();
+  document.getElementById("steps-container").innerHTML = "";
+  addStepField();
   document.getElementById("formTitle").textContent = "Add an exercise";
   document.getElementById("submitBtn").textContent = "Add exercise";
   document.getElementById("cancelEdit").classList.add("hidden");
@@ -382,12 +406,28 @@ function startEdit(id) {
   document.getElementById("f-primary").value = e.primary || "";
   document.getElementById("f-desc").value = e.description || "";
   document.getElementById("f-secondary").value = (e.secondary || []).join(", ");
-  document.getElementById("f-algo").value = e.algorithm || "";
+  document.getElementById("f-tips").value = e.tips || "";
+  const container = document.getElementById("steps-container");
+  container.innerHTML = "";
+  const steps = Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []);
+  if (steps.length === 0) addStepField();
+  else steps.forEach(step => addStepField(step));
   document.getElementById("formTitle").textContent = "Edit exercise";
   document.getElementById("submitBtn").textContent = "Save changes";
   document.getElementById("cancelEdit").classList.remove("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
 }
+ function addStepField(value = "") {
+  const container = document.getElementById("steps-container");
+  const row = document.createElement("div");
+  row.className = "step-row";
+  row.innerHTML = `<input type="text" placeholder="Enter a step" value="${esc(value)}">
+                   <button type="button" class="remove-step" title="Remove step">✕</button>`;
+  row.querySelector(".remove-step").addEventListener("click", () => row.remove());
+  container.appendChild(row);
+}
+
+document.getElementById("addStepBtn").addEventListener("click", () => addStepField());
 
 async function deleteExercise(id) {
   if (!confirm("Delete this exercise?")) return;
