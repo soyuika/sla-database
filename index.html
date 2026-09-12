@@ -119,6 +119,43 @@
   .tag-writing    { --tag-bg: #6b2a4a; --tag-fg: #ffbcd4; --tag-outline: #ff8fb8; }
   .tag-accent     { --tag-bg: #6b5320; --tag-fg: #ffe0a0; --tag-outline: #ffce6b; }
   .tag-culture    { --tag-bg: #3a4252; --tag-fg: #ccd4e0; --tag-outline: #a8b2c4; }
+   /* Level checkboxes in form */
+  .level-checkboxes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .level-check { margin-top: 0; cursor: pointer; }
+  .level-check input { display: none; }
+  .level-check span {
+    display: inline-block;
+    padding: 6px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--line);
+    background: var(--card-2);
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 550;
+    transition: .12s;
+  }
+  .level-check:hover span { border-color: var(--accent); }
+  .level-check input:checked + span {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  /* Level badge on exercise card */
+  .level-row { margin-top: 8px; }
+  .level-badge {
+    display: inline-block;
+    padding: 3px 11px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 650;
+    letter-spacing: .02em;
+    border: 1px solid;
+  }
+  .level-badge.beginner     { background: #16281a; border-color: #2d5a2d; color: #8ad98a; }
+  .level-badge.intermediate { background: #2a2415; border-color: #5a5028; color: #e0c878; }
+  .level-badge.advanced     { background: #2a1616; border-color: #5a2d2d; color: #e88a8a; }
+  .level-badge.mixed        { background: #1f1a2e; border-color: #3d2d5a; color: #b08ee0; }
 
   .empty { color: var(--muted); font-size: 14.5px; padding: 8px 0; }
   .hidden { display: none !important; }
@@ -214,6 +251,16 @@
       <textarea id="f-desc" rows="2" placeholder="What is this exercise and what does it train?"></textarea>
       <label>Secondary tags (comma-separated)</label>
       <input id="f-secondary" placeholder="Listening, Speaking">
+           <label>Recommended levels (CEFR)</label>
+      <div class="level-checkboxes">
+        <label class="level-check"><input type="checkbox" class="f-level" value="A0"><span>A0</span></label>
+        <label class="level-check"><input type="checkbox" class="f-level" value="A1"><span>A1</span></label>
+        <label class="level-check"><input type="checkbox" class="f-level" value="A2"><span>A2</span></label>
+        <label class="level-check"><input type="checkbox" class="f-level" value="B1"><span>B1</span></label>
+        <label class="level-check"><input type="checkbox" class="f-level" value="B2"><span>B2</span></label>
+        <label class="level-check"><input type="checkbox" class="f-level" value="C1"><span>C1</span></label>
+        <label class="level-check"><input type="checkbox" class="f-level" value="C2"><span>C2</span></label>
+      </div>
       <label>Algorithm / Steps (optional)</label>
       <div id="steps-container" style="margin-top: 5px;"></div>
       <button type="button" class="btn" id="addStepBtn" style="margin-top: 8px; font-size: 12px; padding: 6px 12px; border-style: dashed;">+ Add Step</button>
@@ -346,6 +393,28 @@ function renderSectionNav() {
   });
 }
 
+/* ---------- levels ---------- */
+const LEVEL_ORDER = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
+function classifyLevels(levels) {
+  if (!levels || !levels.length) return { text: "", cls: "" };
+  const bands = {
+    beginner:     ["A0", "A1", "A2"],
+    intermediate: ["B1", "B2"],
+    advanced:     ["C1", "C2"]
+  };
+  const sorted = levels.slice().sort((a, b) => LEVEL_ORDER.indexOf(a) - LEVEL_ORDER.indexOf(b));
+  for (const [name, band] of Object.entries(bands)) {
+    if (sorted.every(l => band.includes(l))) {
+      return { text: name.charAt(0).toUpperCase() + name.slice(1), cls: name };
+    }
+  }
+  return { text: sorted.join(", "), cls: "mixed" };
+}
+function renderLevelBadge(levels) {
+  const { text, cls } = classifyLevels(levels);
+  if (!text) return "";
+  return `<div class="level-row"><span class="level-badge ${cls}">${esc(text)}</span></div>`;
+}
 /* ---------- exercise list ---------- */
 function renderList() {
   const box = document.getElementById("exerciseList");
@@ -382,6 +451,7 @@ function renderList() {
             <span class="tag primary tag-${e.primary.toLowerCase()}">${esc(e.primary)}</span>
             ${(e.secondary || []).map(t => `<span class="tag secondary tag-${t.toLowerCase()}">${esc(t)}</span>`).join("")}
           </div>
+                    ${renderLevelBadge(e.levels)}
         </div>
         ${currentUser ? `
           <div class="row" style="flex:0 0 auto">
@@ -458,10 +528,11 @@ document.getElementById("exerciseForm").addEventListener("submit", async e => {
     })
     .filter(Boolean);
   const tips = document.getElementById("f-tips").value.trim();
+  const levels = Array.from(document.querySelectorAll(".f-level:checked")).map(cb => cb.value);
 
   if (!name || !primary) { toast("Name and primary section are required."); return; }
 
-  const payload = { name, primary, description, secondary, algorithm, altNames, tips };
+  const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels };
 
   try {
     if (editingId) {
@@ -500,6 +571,10 @@ function startEdit(id) {
   document.getElementById("f-desc").value = e.description || "";
   document.getElementById("f-secondary").value = (e.secondary || []).join(", ");
   document.getElementById("f-tips").value = e.tips || "";
+  const savedLevels = Array.isArray(e.levels) ? e.levels : [];
+  document.querySelectorAll(".f-level").forEach(cb => {
+    cb.checked = savedLevels.includes(cb.value);
+  });
   const container = document.getElementById("steps-container");
   container.innerHTML = "";
   const steps = Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []);
