@@ -144,6 +144,20 @@
     color: var(--muted);
   }
    .arrow-btn { padding: 6px 9px; font-size: 14px; line-height: 1; min-width: 30px; }
+   /* Collapsible add/edit form */
+  #formTitle {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  #formTitle:hover { color: var(--ink); }
+  #formToggleArrow { font-size: 14px; color: var(--muted); transition: transform 0.2s ease; }
+  #formCard.collapsed #formToggleArrow { transform: rotate(-90deg); }
+  #formCard.collapsed #exerciseForm { display: none; }
+  #formCard.collapsed #formTitle { margin-bottom: 0; }
    /* ---------- Folder view (All tab) ---------- */
   .folder-tile {
     border: 1px solid var(--line);
@@ -303,7 +317,10 @@
 
   <!-- ADD / EDIT FORM (shown when authenticated) -->
   <div class="card hidden" id="formCard">
-    <h2 id="formTitle">Add an exercise</h2>
+        <h2 id="formTitle">
+      <span id="formTitleText">Add an exercise</span>
+      <span id="formToggleArrow">▾</span>
+    </h2>
     <form id="exerciseForm">
       <div class="grid2">
         <div>
@@ -461,7 +478,30 @@ onAuthStateChanged(auth, user => {
   renderList();
 });
 
-/* ---------- section nav ---------- */
+/* ---------- collapsible form ---------- */
+(function initFormCollapse() {
+  const formCard = document.getElementById("formCard");
+  const formTitle = document.getElementById("formTitle");
+  if (!formCard || !formTitle) return;
+
+  // Restore saved state
+  try {
+    if (localStorage.getItem("formCardCollapsed") === "1") {
+      formCard.classList.add("collapsed");
+    }
+  } catch (e) { /* localStorage may be blocked; ignore */ }
+
+  formTitle.addEventListener("click", () => {
+    formCard.classList.toggle("collapsed");
+    try {
+      localStorage.setItem(
+        "formCardCollapsed",
+        formCard.classList.contains("collapsed") ? "1" : "0"
+      );
+    } catch (e) { /* ignore */ }
+  });
+})();
+ /* ---------- section nav ---------- */
 function renderSectionNav() {
   const nav = document.getElementById("sectionNav");
   nav.innerHTML = `<button class="${currentSection === null ? "active" : ""}" data-sec="">All</button>` +
@@ -915,7 +955,7 @@ function resetForm() {
   if (searchEl) searchEl.value = "";
   const resultsEl = document.getElementById("f-link-results");
   if (resultsEl) resultsEl.innerHTML = "";
-  document.getElementById("formTitle").textContent = "Add an exercise";
+    document.getElementById("formTitleText").textContent = "Add an exercise";
   document.getElementById("submitBtn").textContent = "Add exercise";
   document.getElementById("cancelEdit").classList.add("hidden");
 }
@@ -923,6 +963,7 @@ function resetForm() {
 function startEdit(id) {
   const e = allExercises.find(x => x.id === id);
   if (!e) return;
+ document.getElementById("formCard").classList.remove("collapsed");
   editingId = id;
   document.getElementById("f-name").value = e.name || "";
   document.getElementById("f-alt").value = e.altNames || "";
@@ -945,7 +986,7 @@ function startEdit(id) {
   const steps = Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []);
   if (steps.length === 0) addStepField();
   else steps.forEach(step => addStepField(step));
-  document.getElementById("formTitle").textContent = "Edit exercise";
+    document.getElementById("formTitleText").textContent = "Edit exercise";
   document.getElementById("submitBtn").textContent = "Save changes";
   document.getElementById("cancelEdit").classList.remove("hidden");
   window.scrollTo({ top: 0, behavior: "smooth" });
