@@ -654,15 +654,7 @@ function renderList() {
   }
 
   /* ---------- Regular exercise view (section selected) ---------- */
-  let list = allExercises.filter(e =>
-    e.primary === currentSection ||
-    (e.secondary || []).includes(currentSection)
-  );
-  list = list.slice().sort((a, b) => {
-    const aRank = a.primary === currentSection ? 0 : 1;
-    const bRank = b.primary === currentSection ? 0 : 1;
-    return aRank - bRank;
-  });
+    const list = allExercises.filter(e => e.primary === currentSection);
 
   title.textContent = `Exercises — ${currentSection}`;
 
