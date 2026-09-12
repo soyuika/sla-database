@@ -143,6 +143,7 @@
     border: 1px solid var(--line);
     color: var(--muted);
   }
+   .arrow-btn { padding: 6px 9px; font-size: 14px; line-height: 1; min-width: 30px; }
    /* ---------- Folder view (All tab) ---------- */
   .folder-tile {
     border: 1px solid var(--line);
@@ -351,8 +352,6 @@
 
       <label>Tips / General advice (optional)</label>
       <textarea id="f-tips" rows="2" placeholder="Useful tips or things to keep in mind."></textarea>
-           <label>Manual order within this level (optional, lower = earlier)</label>
-      <input id="f-order" type="number" step="1" placeholder="0">
       <div class="row" style="margin-top:14px;">
         <button type="submit" class="btn primary" id="submitBtn">Add exercise</button>
         <button type="button" class="btn hidden" id="cancelEdit">Cancel edit</button>
@@ -523,6 +522,51 @@ const LEVEL_ORDER = ["A0", "A1", "A2", "B1", "B2", "C1", "C2"];
     // Final fallback: alphabetical
     return (a.name || "").localeCompare(b.name || "");
   });
+}
+ async function moveExercise(id, direction) {
+  const section = currentSection;
+  if (!section) return;
+
+  const list = sortByLevels(allExercises.filter(e => e.primary === section));
+  const idx = list.findIndex(e => e.id === id);
+  if (idx < 0) return;
+
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (swapIdx < 0 || swapIdx >= list.length) return;
+
+  // Only allow reordering within the same level group
+  const keyOf = (e) => {
+    const lv = (e.levels || []).slice().sort((x, y) => LEVEL_ORDER.indexOf(x) - LEVEL_ORDER.indexOf(y));
+    return lv.join(",");
+  };
+  if (keyOf(list[idx]) !== keyOf(list[swapIdx])) {
+    toast("Can only reorder within the same level group.");
+    return;
+  }
+
+  // Swap positions in the array
+  [list[idx], list[swapIdx]] = [list[swapIdx], list[idx]];
+
+  // Reassign sequential order values (10, 20, 30...) across the section
+  const updates = [];
+  for (let i = 0; i < list.length; i++) {
+    const desired = (i + 1) * 10;
+    const current = list[i].order != null ? list[i].order : 0;
+    if (current !== desired) {
+      updates.push(updateDoc(doc(db, COLLECTION, list[i].id), { order: desired }));
+      const local = allExercises.find(x => x.id === list[i].id);
+      if (local) local.order = desired;
+    }
+  }
+  if (!updates.length) return;
+
+  try {
+    await Promise.all(updates);
+    renderList();
+  } catch (err) {
+    toast("Reorder failed: " + err.message);
+    await loadExercises();
+  }
 }
 function classifyLevels(levels) {
   if (!levels || !levels.length) return { text: "", cls: "" };
@@ -746,11 +790,14 @@ function renderList() {
           </div>
           ${renderLevelBadge(e.levels)}
         </div>
-        ${isAdmin ? `
-          <div class="row" style="flex:0 0 auto">
+               <div class="row" style="flex:0 0 auto; gap:4px;">
+          ${isAdmin ? `
+            <button class="btn ghost arrow-btn" data-move-up="${e.id}" title="Move up">↑</button>
+            <button class="btn ghost arrow-btn" data-move-down="${e.id}" title="Move down">↓</button>
             <button class="btn ghost" data-edit="${e.id}">Edit</button>
             <button class="btn ghost danger" data-del="${e.id}">Delete</button>
-          </div>` : ""}
+          ` : ""}
+        </div>
       </div>
       ${e.description ? `<div class="exercise-desc">${esc(e.description)}</div>` : ""}
       ${renderSteps(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []))}
@@ -764,6 +811,10 @@ function renderList() {
     b.addEventListener("click", () => startEdit(b.dataset.edit)));
   box.querySelectorAll("[data-del]").forEach(b =>
     b.addEventListener("click", () => deleteExercise(b.dataset.del)));
+   box.querySelectorAll("[data-move-up]").forEach(b =>
+    b.addEventListener("click", (e) => { e.stopPropagation(); moveExercise(b.dataset.moveUp, "up"); }));
+  box.querySelectorAll("[data-move-down]").forEach(b =>
+    b.addEventListener("click", (e) => { e.stopPropagation(); moveExercise(b.dataset.moveDown, "down"); }));
 
   // expand/collapse on click
   box.querySelectorAll(".exercise").forEach(card => {
@@ -828,14 +879,12 @@ document.getElementById("exerciseForm").addEventListener("submit", async e => {
     })
     .filter(Boolean);
   const tips = document.getElementById("f-tips").value.trim();
-   const orderRaw = document.getElementById("f-order").value.trim();
-  const order = orderRaw === "" ? 0 : Number(orderRaw);
   const levels = Array.from(document.querySelectorAll(".f-level:checked")).map(cb => cb.value);
    const linkedIdsFinal = linkedIds.slice();
 
   if (!name || !primary) { toast("Name and primary section are required."); return; }
 
-      const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels, linkedIds: linkedIdsFinal, order };
+        const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels, linkedIds: linkedIdsFinal };
 
   try {
     if (editingId) {
@@ -880,7 +929,6 @@ function startEdit(id) {
   document.getElementById("f-desc").value = e.description || "";
   document.getElementById("f-secondary").value = (e.secondary || []).join(", ");
   document.getElementById("f-tips").value = e.tips || "";
-   document.getElementById("f-order").value = e.order != null ? e.order : "";
   const savedLevels = Array.isArray(e.levels) ? e.levels : [];
   document.querySelectorAll(".f-level").forEach(cb => {
     cb.checked = savedLevels.includes(cb.value);
