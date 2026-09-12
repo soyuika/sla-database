@@ -515,8 +515,19 @@ function renderLinked(ids) {
 }
 
 function jumpToExercise(id) {
-  const target = document.querySelector(`.exercise[data-id="${id}"]`);
-  if (!target) { toast("That exercise isn't in the current view."); return; }
+  const linked = allExercises.find(x => x.id === id);
+  if (!linked) { toast("That exercise no longer exists."); return; }
+
+  // If it's not currently visible, switch to a section where it will be
+  let target = document.querySelector(`.exercise[data-id="${id}"]`);
+  if (!target) {
+    currentSection = linked.primary;
+    renderSectionNav();
+    renderList();
+    target = document.querySelector(`.exercise[data-id="${id}"]`);
+  }
+  if (!target) { toast("Couldn't locate that exercise."); return; }
+
   target.classList.add("open");
   target.scrollIntoView({ behavior: "smooth", block: "center" });
   const original = target.style.boxShadow;
