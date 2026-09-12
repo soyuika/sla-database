@@ -70,16 +70,6 @@
   .exercise { border: 1px solid var(--line); border-radius: 11px; padding: 14px 16px; background: var(--card); transition: box-shadow 0.2s ease, transform 0.2s ease; cursor: pointer; }
   .exercise.open { box-shadow: 0 10px 28px rgba(0,0,0,0.55); transform: translateY(-2px); z-index: 10; position: relative; }
 
-    /* Section tints — barely-there hue shifts for grouping */
-  .bg-Vocabulary { background-color: #131722; }
-  .bg-Grammar    { background-color: #161322; }
-  .bg-Listening  { background-color: #0f1a1c; }
-  .bg-Speaking   { background-color: #1c1613; }
-  .bg-Reading    { background-color: #0f1a15; }
-  .bg-Writing    { background-color: #1c131a; }
-  .bg-Accent     { background-color: #1c1a13; }
-  .bg-Culture    { background-color: #15171c; }
-
   .exercise-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
   .exercise-name { font-weight: 650; font-size: 17px; }
 
@@ -103,11 +93,21 @@
   .exercise.open .exercise-steps { max-height: 1200px; opacity: 1; margin-top: 9px; }
   .exercise.open .tips-box { max-height: 200px; opacity: 1; padding: 9px 12px; margin-top: 10px; }
 
-    /* Tags */
+      /* Tags — section color lives here */
   .tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
   .tag { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; letter-spacing: .01em; }
-  .tag.primary   { background: var(--accent); color: #fff; }
-  .tag.secondary { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .tag.primary   { background: var(--tag-bg); color: var(--tag-fg); }
+  .tag.secondary { background: transparent; color: var(--tag-fg); border: 1px solid var(--tag-border); }
+
+  /* Per-section tag palettes */
+  .tag-vocabulary { --tag-bg: #1a2440; --tag-fg: #8ab4ff; --tag-border: #3a5a9d; }
+  .tag-grammar    { --tag-bg: #231a40; --tag-fg: #b499ff; --tag-border: #5a3d9d; }
+  .tag-listening  { --tag-bg: #0f2a2a; --tag-fg: #5dd4c0; --tag-border: #2d7a6a; }
+  .tag-speaking   { --tag-bg: #2a1a10; --tag-fg: #ffa070; --tag-border: #8a4d2d; }
+  .tag-reading    { --tag-bg: #0f2a1a; --tag-fg: #7bd695; --tag-border: #2d7a4a; }
+  .tag-writing    { --tag-bg: #2a1420; --tag-fg: #ff8fb8; --tag-border: #8a3d5a; }
+  .tag-accent     { --tag-bg: #2a2410; --tag-fg: #ffce6b; --tag-border: #8a6d2d; }
+  .tag-culture    { --tag-bg: #1a1e28; --tag-fg: #a8b2c4; --tag-border: #4a5568; }
    /* Level checkboxes in form */
   .level-checkboxes { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
   .level-check { margin-top: 0; cursor: pointer; }
