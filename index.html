@@ -296,7 +296,6 @@
     </div>
     <div class="row" style="margin-top:14px;">
       <button class="btn primary" id="signInBtn">Sign in</button>
-      <button class="btn" id="signUpBtn">Create account</button>
       <button class="btn ghost" id="skipBtn">Browse as student</button>
     </div>
   </div>
@@ -431,14 +430,6 @@ document.getElementById("signInBtn").addEventListener("click", async () => {
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (e) { toast("Sign in failed: " + e.message); }
-});
-document.getElementById("signUpBtn").addEventListener("click", async () => {
-  const email = document.getElementById("email").value.trim();
-  const pass = document.getElementById("password").value;
-  try {
-    await createUserWithEmailAndPassword(auth, email, pass);
-    toast("Account created.");
-  } catch (e) { toast("Sign up failed: " + e.message); }
 });
 document.getElementById("skipBtn").addEventListener("click", () => {
   document.getElementById("signInCard").classList.add("hidden");
