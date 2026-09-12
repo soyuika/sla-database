@@ -130,21 +130,25 @@
   }
   .toast.show { opacity: 1; }
   .auth-bar { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
-  /* ---------- Mobile tweaks ---------- */
+   /* ---------- Mobile tweaks ---------- */
   @media (max-width: 640px) {
     body {
-      padding: 18px 12px calc(80px + env(safe-area-inset-bottom, 0px));
+      padding: 18px 12px calc(110px + env(safe-area-inset-bottom, 0px));
+      overflow-x: hidden;
     }
-    .wrap { gap: 14px; }
+    .wrap { gap: 14px; min-width: 0; }
     h1 { font-size: 21px; line-height: 1.25; }
-    .card { padding: 14px 14px; }
-    .exercise { padding: 12px 14px; }
-    .exercise-name { font-size: 15.5px; }
-    .exercise-desc, .exercise-steps { font-size: 13.5px; }
+    .card { padding: 14px 14px; min-width: 0; overflow: hidden; }
+    #exerciseList { grid-template-columns: 1fr; min-width: 0; }
+    .exercise { padding: 12px 14px; min-width: 0; overflow-wrap: anywhere; }
+    .exercise-name { font-size: 15.5px; overflow-wrap: anywhere; }
+    .exercise-desc, .exercise-steps { font-size: 13.5px; overflow-wrap: anywhere; word-break: break-word; }
+    .exercise-top { flex-wrap: wrap; }
     .tag { font-size: 11px; padding: 2px 8px; }
     .section-nav button { font-size: 12.5px; padding: 6px 11px; }
-    .step-row input { font-size: 14px; padding: 8px 10px; }
+    .step-row input { font-size: 14px; padding: 8px 10px; min-width: 0; }
     .step-row button { padding: 8px 10px; font-size: 12px; }
+    .tips-box { overflow-wrap: anywhere; }
   }
 </style>
 </head>
