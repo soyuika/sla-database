@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; }
-  :root {a
+  :root {
     --bg: #0c0e13;
     --card: #15181f;
     --card-2: #1b1f28;
@@ -650,7 +650,6 @@ function compareOrder(a, b) {
   } catch (err) {
     toast("Reorder failed: " + err.message);
     await loadExercises();
-   document.getElementById("footerYear").textContent = new Date().getFullYear();
   }
 }
 function classifyLevels(levels) {
@@ -1100,6 +1099,7 @@ async function loadExercises() {
 }
 
 /* ---------- init ---------- */
+ document.getElementById("footerYear").textContent = new Date().getFullYear();
 renderSectionNav();
 loadExercises();
 </script>
