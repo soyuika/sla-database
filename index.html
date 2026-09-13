@@ -156,21 +156,30 @@
     color: var(--muted);
   }
    .arrow-btn { padding: 6px 9px; font-size: 14px; line-height: 1; min-width: 30px; }
-   /* Recommended duration chips */
-  .durations-row {
-    display: flex; gap: 6px; flex-wrap: wrap;
-    margin: 0; max-height: 0; overflow: hidden; opacity: 0;
+     /* Recommended duration mini-table */
+  .durations-table {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--card-2);
+    max-height: 0;
+    opacity: 0;
     transition: all 0.3s ease;
+    margin: 0;
   }
-  .exercise.open .durations-row { max-height: 200px; opacity: 1; margin-top: 10px; }
-  .duration-chip {
-    display: inline-flex; align-items: baseline; gap: 5px;
-    padding: 4px 10px; border-radius: 20px;
-    background: var(--card-2); border: 1px solid var(--line);
-    font-size: 12px;
+  .exercise.open .durations-table { max-height: 300px; opacity: 1; margin-top: 10px; }
+  .durations-row-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    border-top: 1px solid var(--line);
   }
-  .duration-chip .stage { color: var(--muted); font-weight: 500; }
-  .duration-chip .val   { color: var(--ink); font-weight: 600; }
+  .durations-row-item:first-child { border-top: none; }
+  .durations-row-item .stage { color: var(--muted); font-weight: 500; flex-shrink: 0; }
+  .durations-row-item .val { color: var(--ink); font-weight: 600; text-align: right; }
    /* Collapsible add/edit form */
   #formTitle {
     cursor: pointer;
@@ -733,12 +742,12 @@ function renderLevelBadge(levels) {
 })();
  function renderDurations(d) {
   if (!d) return "";
-  const chips = [];
-  if (d.starting) chips.push(`<span class="duration-chip"><span class="stage">Starting</span><span class="val">${esc(d.starting)}</span></span>`);
-  if (d.slow)     chips.push(`<span class="duration-chip"><span class="stage">Slow progress</span><span class="val">${esc(d.slow)}</span></span>`);
-  if (d.fast)     chips.push(`<span class="duration-chip"><span class="stage">Fast progress</span><span class="val">${esc(d.fast)}</span></span>`);
-  if (!chips.length) return "";
-  return `<div class="durations-row">${chips.join("")}</div>`;
+  const rows = [];
+  if (d.starting) rows.push(`<div class="durations-row-item"><span class="stage">Starting</span><span class="val">${esc(d.starting)}</span></div>`);
+  if (d.slow)     rows.push(`<div class="durations-row-item"><span class="stage">Slow progress</span><span class="val">${esc(d.slow)}</span></div>`);
+  if (d.fast)     rows.push(`<div class="durations-row-item"><span class="stage">Fast progress</span><span class="val">${esc(d.fast)}</span></div>`);
+  if (!rows.length) return "";
+  return `<div class="durations-table">${rows.join("")}</div>`;
 }
  /* ---------- linked exercises ---------- */
 let linkedIds = [];
