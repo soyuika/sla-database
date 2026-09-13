@@ -230,12 +230,14 @@
     flex-direction: column;
     gap: 3px;
   }
-  .folder-preview-item {
+    .folder-preview-item {
     font-size: 13px;
     color: var(--muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    transition: opacity 0.18s ease, color 0.18s ease;
+  }
   }
    .folder-preview:hover .folder-preview-item { opacity: 0.4; }
   .folder-preview .folder-preview-item:hover {
