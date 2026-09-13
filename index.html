@@ -74,6 +74,15 @@
   .exercise-top > div:first-child { flex: 1 1 100%; min-width: 0; }
   .exercise-top > div:last-child { flex: 0 0 auto; }
   .exercise-name { font-weight: 650; font-size: 17px; }
+   .exercise-name-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+  .exercise-name-row .exercise-name { flex: 1; min-width: 0; }
+  .exercise-name-row .level-badge { flex-shrink: 0; }
 
   /* Step List Inputs */
   .step-row { display: flex; gap: 8px; margin-top: 6px; align-items: center; }
@@ -726,7 +735,7 @@ function classifyLevels(levels) {
 function renderLevelBadge(levels) {
   const { text, cls } = classifyLevels(levels);
   if (!text) return "";
-  return `<div class="level-row"><span class="level-badge ${cls}">${esc(text)}</span></div>`;
+  return `<span class="level-badge ${cls}">${esc(text)}</span>`;
 }
 /* ---------- level checkboxes: mutual exclusivity for "Any" ---------- */
 (function initLevelExclusivity() {
@@ -901,15 +910,17 @@ function renderList() {
 
   box.innerHTML = list.map(e => `
     <div class="exercise bg-${e.primary}" data-id="${e.id}">
-      <div class="exercise-top">
+            <div class="exercise-top">
         <div>
-          <div class="exercise-name">${esc(e.name)}</div>
+          <div class="exercise-name-row">
+            <div class="exercise-name">${esc(e.name)}</div>
+            ${renderLevelBadge(e.levels)}
+          </div>
           ${e.altNames ? `<div style="font-size:13px;color:var(--muted);margin-top:3px;">Also known as: ${esc(e.altNames)}</div>` : ""}
           <div class="tags">
             <span class="tag primary tag-${e.primary.toLowerCase()}">${esc(e.primary)}</span>
             ${(e.secondary || []).map(t => `<span class="tag secondary tag-${t.toLowerCase()}">${esc(t)}</span>`).join("")}
           </div>
-          ${renderLevelBadge(e.levels)}
         </div>
                <div class="row" style="flex:0 0 auto; gap:4px;">
           ${isAdmin ? `
