@@ -913,8 +913,8 @@ function renderList() {
           ` : ""}
         </div>
       </div>
-            ${renderDurations(e.durations)}
       ${e.description ? `<div class="exercise-desc">${esc(e.description)}</div>` : ""}
+      ${renderDurations(e.durations)}
       ${renderSteps(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []))}
       ${e.tips ? `<div class="tips-box"><strong>💡 Tips:</strong> ${esc(e.tips)}</div>` : ""}
       ${renderLinked(e.linkedIds)}
