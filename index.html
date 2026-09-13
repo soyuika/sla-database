@@ -144,6 +144,21 @@
     color: var(--muted);
   }
    .arrow-btn { padding: 6px 9px; font-size: 14px; line-height: 1; min-width: 30px; }
+   /* Recommended duration chips */
+  .durations-row {
+    display: flex; gap: 6px; flex-wrap: wrap;
+    margin: 0; max-height: 0; overflow: hidden; opacity: 0;
+    transition: all 0.3s ease;
+  }
+  .exercise.open .durations-row { max-height: 200px; opacity: 1; margin-top: 10px; }
+  .duration-chip {
+    display: inline-flex; align-items: baseline; gap: 5px;
+    padding: 4px 10px; border-radius: 20px;
+    background: var(--card-2); border: 1px solid var(--line);
+    font-size: 12px;
+  }
+  .duration-chip .stage { color: var(--muted); font-weight: 500; }
+  .duration-chip .val   { color: var(--ink); font-weight: 600; }
    /* Collapsible add/edit form */
   #formTitle {
     cursor: pointer;
@@ -369,6 +384,21 @@
 
       <label>Tips / General advice (optional)</label>
       <textarea id="f-tips" rows="2" placeholder="Useful tips or things to keep in mind."></textarea>
+           <label>Recommended duration (per stage)</label>
+      <div class="grid2">
+        <div>
+          <label style="margin-top:6px;font-weight:500;font-size:12px;color:var(--muted);">1 · Starting out (building a habit)</label>
+          <input id="f-dur-starting" placeholder="e.g. 5 min/day">
+        </div>
+        <div>
+          <label style="margin-top:6px;font-weight:500;font-size:12px;color:var(--muted);">2 · Slow progress</label>
+          <input id="f-dur-slow" placeholder="e.g. 15 min/day">
+        </div>
+        <div>
+          <label style="margin-top:6px;font-weight:500;font-size:12px;color:var(--muted);">3 · Fast progress</label>
+          <input id="f-dur-fast" placeholder="e.g. 30 min/day">
+        </div>
+      </div>
       <div class="row" style="margin-top:14px;">
         <button type="submit" class="btn primary" id="submitBtn">Add exercise</button>
         <button type="button" class="btn hidden" id="cancelEdit">Cancel edit</button>
@@ -676,6 +706,15 @@ function renderLevelBadge(levels) {
     });
   });
 })();
+ function renderDurations(d) {
+  if (!d) return "";
+  const chips = [];
+  if (d.starting) chips.push(`<span class="duration-chip"><span class="stage">Starting</span><span class="val">${esc(d.starting)}</span></span>`);
+  if (d.slow)     chips.push(`<span class="duration-chip"><span class="stage">Slow progress</span><span class="val">${esc(d.slow)}</span></span>`);
+  if (d.fast)     chips.push(`<span class="duration-chip"><span class="stage">Fast progress</span><span class="val">${esc(d.fast)}</span></span>`);
+  if (!chips.length) return "";
+  return `<div class="durations-row">${chips.join("")}</div>`;
+}
  /* ---------- linked exercises ---------- */
 let linkedIds = [];
 
@@ -840,6 +879,7 @@ function renderList() {
           ` : ""}
         </div>
       </div>
+            ${renderDurations(e.durations)}
       ${e.description ? `<div class="exercise-desc">${esc(e.description)}</div>` : ""}
       ${renderSteps(Array.isArray(e.algorithm) ? e.algorithm : (e.algorithm ? e.algorithm.split("\n") : []))}
       ${e.tips ? `<div class="tips-box"><strong>💡 Tips:</strong> ${esc(e.tips)}</div>` : ""}
@@ -920,12 +960,17 @@ document.getElementById("exerciseForm").addEventListener("submit", async e => {
     })
     .filter(Boolean);
   const tips = document.getElementById("f-tips").value.trim();
+   const durations = {
+    starting: document.getElementById("f-dur-starting").value.trim(),
+    slow: document.getElementById("f-dur-slow").value.trim(),
+    fast: document.getElementById("f-dur-fast").value.trim()
+  };
   const levels = Array.from(document.querySelectorAll(".f-level:checked")).map(cb => cb.value);
    const linkedIdsFinal = linkedIds.slice();
 
   if (!name || !primary) { toast("Name and primary section are required."); return; }
 
-        const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels, linkedIds: linkedIdsFinal };
+          const payload = { name, primary, description, secondary, algorithm, altNames, tips, levels, linkedIds: linkedIdsFinal, durations };
 
   try {
     if (editingId) {
@@ -971,6 +1016,10 @@ function startEdit(id) {
   document.getElementById("f-desc").value = e.description || "";
   document.getElementById("f-secondary").value = (e.secondary || []).join(", ");
   document.getElementById("f-tips").value = e.tips || "";
+   const d = e.durations || {};
+  document.getElementById("f-dur-starting").value = d.starting || "";
+  document.getElementById("f-dur-slow").value = d.slow || "";
+  document.getElementById("f-dur-fast").value = d.fast || "";
   const savedLevels = Array.isArray(e.levels) ? e.levels : [];
   document.querySelectorAll(".f-level").forEach(cb => {
     cb.checked = savedLevels.includes(cb.value);
