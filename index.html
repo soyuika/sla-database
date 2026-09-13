@@ -168,9 +168,9 @@
     margin: 0;
   }
   .exercise.open .durations-table { max-height: 300px; opacity: 1; margin-top: 10px; }
-  .durations-row-item {
-    display: flex;
-    justify-content: space-between;
+    .durations-row-item {
+    display: grid;
+    grid-template-columns: 110px 1fr;
     align-items: baseline;
     gap: 12px;
     padding: 7px 12px;
@@ -178,8 +178,8 @@
     border-top: 1px solid var(--line);
   }
   .durations-row-item:first-child { border-top: none; }
-  .durations-row-item .stage { color: var(--muted); font-weight: 500; flex-shrink: 0; }
-  .durations-row-item .val { color: var(--ink); font-weight: 600; text-align: right; }
+  .durations-row-item .stage { color: var(--muted); font-weight: 500; }
+  .durations-row-item .val { color: var(--ink); font-weight: 600; text-align: left; }
    /* Collapsible add/edit form */
   #formTitle {
     cursor: pointer;
